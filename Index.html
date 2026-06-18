@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اشتراكي - الجيم</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --lime: #aee032;
+      --lime-bright: #c4f135;
+      --skin: #f0b487;
+      --skin-dark: #d99566;
+      --ink: #0d0d0d;
+      --ink-soft: #1a1a1a;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1c1f10 0%, #0d0d0d 60%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .logo-area {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .logo-area img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 16px rgba(174, 224, 50, 0.25));
+    }
+
+    .logo-area p {
+      color: #999;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--ink-soft);
+      border: 1px solid #2c2c2c;
+      border-top: 3px solid var(--lime);
+      border-radius: 18px;
+      padding: 28px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #bbb;
+      margin-bottom: 8px;
+    }
+
+    input[type="tel"] {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: #161616;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      direction: ltr;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    input[type="tel"]:focus {
+      border-color: var(--lime);
+      box-shadow: 0 0 0 3px rgba(174, 224, 50, 0.15);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: var(--lime);
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: transform 0.1s, opacity 0.2s, background 0.2s;
+    }
+
+    button:hover {
+      background: var(--lime-bright);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .error-msg {
+      background: #3a1414;
+      color: #ff8080;
+      border: 1px solid #5c1f1f;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .result {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+
+    .status-badge.active {
+      background: #1f2e0a;
+      color: var(--lime-bright);
+      border: 1px solid #3a5614;
+    }
+
+    .status-badge.expiring_soon {
+      background: #3a2e0f;
+      color: #fbbf24;
+      border: 1px solid #5c4a1a;
+    }
+
+    .status-badge.expired {
+      background: #3a1414;
+      color: #f87171;
+      border: 1px solid #5c1f1f;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .member-name {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: #fff;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 4px;
+      border-bottom: 1px solid #2c2c2c;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-row .label {
+      color: #999;
+      font-size: 14px;
+    }
+
+    .info-row .value {
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      direction: ltr;
+    }
+
+    .days-left {
+      text-align: center;
+      margin-top: 18px;
+      padding: 16px;
+      background: #161616;
+      border-radius: 12px;
+    }
+
+    .days-left .num {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--lime-bright);
+    }
+
+    .days-left .num.negative {
+      color: #f87171;
+    }
+
+    .days-left .txt {
+      font-size: 13px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .back-btn {
+      background: transparent;
+      color: #999;
+      border: 1px solid #333;
+      margin-top: 16px;
+      font-weight: 500;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #444;
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="logo-area">
+      <img src="https://raw.githubusercontent.com/USERNAME/REPO/main/logo.png" alt="Fitness Pro">
+      <p>تابع حالة اشتراكك بسهولة</p>
+    </div>
+
+    <div class="card">
+      <!-- شاشة إدخال الرقم -->
+      <div id="searchScreen">
+        <div class="form-group">
+          <label for="phoneInput">رقم التليفون</label>
+          <input type="tel" id="phoneInput" placeholder="01xxxxxxxxx" inputmode="numeric">
+        </div>
+        <button id="checkBtn" onclick="checkSubscription()">استعلام عن الاشتراك</button>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <!-- شاشة عرض النتيجة -->
+      <div class="result" id="resultScreen">
+        <div id="statusBadge" class="status-badge"></div>
+        <div class="member-name" id="memberName"></div>
+
+        <div class="info-row">
+          <span class="label">تاريخ بداية الاشتراك</span>
+          <span class="value" id="startDateVal"></span>
+        </div>
+        <div class="info-row">
+          <span class="label">تاريخ نهاية الاشتراك</span>
+          <span class="value" id="endDateVal"></span>
+        </div>
+
+        <div class="days-left">
+          <div class="num" id="daysNum"></div>
+          <div class="txt" id="daysTxt"></div>
+        </div>
+
+        <button class="back-btn" onclick="resetSearch()">استعلام برقم آخر</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkSubscription() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      const checkBtn = document.getElementById('checkBtn');
+
+      errorMsg.style.display = 'none';
+
+      if (!phone) {
+        errorMsg.textContent = 'من فضلك أدخل رقم التليفون';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      checkBtn.disabled = true;
+      checkBtn.innerHTML = '<span class="spinner"></span> جاري البحث...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          checkBtn.disabled = false;
+          checkBtn.textContent = 'استعلام عن الاشتراك';
+
+          if (res.success) {
+            showResult(res.member);
+          } else {
+            errorMsg.textContent = res.message || 'حصل خطأ غير متوقع';
+            errorMsg.style.display = 'block';
+          }
+        })
+        .withFailureHandler(function(err) {
+          checkBtn.disabled = false;
+          checkBtn.textContent = 'استعلام عن الاشتراك';
+          errorMsg.textContent = 'فشل الاتصال بالسيرفر، حاول تاني';
+          errorMsg.style.display = 'block';
+        })
+        .getMemberStatus(phone);
+    }
+
+    function showResult(member) {
+      document.getElementById('searchScreen').style.display = 'none';
+      document.getElementById('resultScreen').style.display = 'block';
+
+      document.getElementById('memberName').textContent = member.name;
+      document.getElementById('startDateVal').textContent = formatArabicDate(member.startDate);
+      document.getElementById('endDateVal').textContent = formatArabicDate(member.endDate);
+
+      const badge = document.getElementById('statusBadge');
+      const daysNum = document.getElementById('daysNum');
+      const daysTxt = document.getElementById('daysTxt');
+
+      badge.className = 'status-badge ' + member.status;
+
+      if (member.status === 'active') {
+        badge.innerHTML = '<span class="dot"></span> الاشتراك نشط';
+        daysNum.textContent = member.daysLeft;
+        daysNum.className = 'num';
+        daysTxt.textContent = 'يوم متبقي على انتهاء الاشتراك';
+      } else if (member.status === 'expiring_soon') {
+        badge.innerHTML = '<span class="dot"></span> الاشتراك بيخلص قريب';
+        daysNum.textContent = member.daysLeft;
+        daysNum.className = 'num';
+        daysTxt.textContent = member.daysLeft === 0 ? 'بيخلص النهاردة!' : 'يوم متبقي - جدد دلوقتي';
+      } else if (member.status === 'expired') {
+        badge.innerHTML = '<span class="dot"></span> الاشتراك منتهي';
+        daysNum.textContent = Math.abs(member.daysLeft);
+        daysNum.className = 'num negative';
+        daysTxt.textContent = 'يوم من انتهاء الاشتراك';
+      } else {
+        badge.innerHTML = '<span class="dot"></span> غير معروف';
+        daysNum.textContent = '-';
+        daysTxt.textContent = '';
+      }
+    }
+
+    function formatArabicDate(dateStr) {
+      if (!dateStr) return '-';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      const year = parts[0];
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      return day + ' ' + months[month - 1] + ' ' + year;
+    }
+
+    function resetSearch() {
+      document.getElementById('phoneInput').value = '';
+      document.getElementById('searchScreen').style.display = 'block';
+      document.getElementById('resultScreen').style.display = 'none';
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+
+    // إمكانية الإدخال بزرار Enter
+    document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') checkSubscription();
+    });
+  </script>
+</body>
+</html>
