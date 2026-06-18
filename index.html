@@ -100,9 +100,76 @@
       display: inline-block; vertical-align: middle; margin-left: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Light Mode ===== */
+    body.light {
+      background: radial-gradient(circle at 50% 0%, #e8f5c8 0%, #f0f0f0 60%);
+      color: #111;
+    }
+    body.light .card { background: #fff; border-color: #ddd; }
+    body.light label { color: #555; }
+    body.light input[type="tel"] { background: #f5f5f5; border-color: #ccc; color: #111; }
+    body.light .error-msg { background: #ffe0e0; color: #c00; border-color: #f5c0c0; }
+    body.light .logo-area p { color: #666; }
+    body.light .info-row { border-color: #eee; }
+    body.light .info-row .lbl { color: #666; }
+    body.light .info-row .val { color: #111; }
+    body.light .days-left { background: #f5f5f5; }
+    body.light .days-left .txt { color: #666; }
+    body.light .back-btn { color: #555; border-color: #ccc; }
+    body.light .status-badge.active { background: #e6ffd0; color: #3a7c00; border-color: #b2e060; }
+    body.light .status-badge.expiring_soon { background: #fff8e0; color: #8a6000; border-color: #f0d060; }
+    body.light .status-badge.expired { background: #ffe0e0; color: #b00; border-color: #f5a0a0; }
+
+    /* ===== Floating Buttons ===== */
+    .floating-btns {
+      position: fixed;
+      bottom: 20px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 999;
+    }
+    .fab {
+      width: 46px; height: 46px;
+      border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .fab:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+    .fab-wa   { background: #25d366; color: #fff; }
+    .fab-mode { background: #2c2c2c; color: #ffd400; font-size: 18px; }
+    body.light .fab-mode { background: #e0e0e0; color: #333; }
+
+    /* Tooltip */
+    .fab-wrap { position: relative; }
+    .fab-wrap .tip {
+      position: absolute; left: 54px; top: 50%; transform: translateY(-50%);
+      background: #222; color: #fff; font-size: 12px; padding: 5px 10px;
+      border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    body.light .fab-wrap .tip { background: #333; }
+    .fab-wrap:hover .tip { opacity: 1; }
   </style>
 </head>
 <body>
+
+  <!-- Floating Buttons -->
+  <div class="floating-btns">
+    <div class="fab-wrap">
+      <a class="fab fab-wa" href="https://wa.me/201022390517" target="_blank" title="تواصل مع المطور">💬</a>
+      <span class="tip">تواصل مع المطور</span>
+    </div>
+    <div class="fab-wrap">
+      <button class="fab fab-mode" onclick="toggleMode()" id="modeBtn">🌙</button>
+      <span class="tip">تغيير الوضع</span>
+    </div>
+  </div>
+
   <div class="container">
     <div class="logo-area">
       <img src="logo.png" alt="Fitness Pro">
@@ -213,6 +280,24 @@
     document.getElementById('phoneInput').addEventListener('keypress', e => {
       if (e.key === 'Enter') checkSubscription();
     });
+
+    function toggleMode() {
+      const isLight = document.body.classList.toggle('light');
+      document.getElementById('modeBtn').textContent = isLight ? '🌙' : '☀️';
+      localStorage.setItem('fpMode', isLight ? 'light' : 'dark');
+    }
+
+    // تطبيق الوضع المحفوظ
+    if (localStorage.getItem('fpMode') === 'light') {
+      document.body.classList.add('light');
+      document.getElementById('modeBtn').textContent = '☀️';
+    }
   </script>
+
+  <!-- Footer -->
+  <footer style="text-align:center; padding: 18px 20px 30px; font-size: 12px; color: #555; letter-spacing: 0.4px;">
+    تصميم <span style="color: var(--lime); font-weight: 600;">كريم محمد</span> &nbsp;|&nbsp; <span style="color: var(--lime); font-weight: 600;">Kareem Mohamed</span>
+  </footer>
+
 </body>
 </html>
