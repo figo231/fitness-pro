@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Pro - لوحة التحكم</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --lime: #aee032; --lime-bright: #c4f135;
+      --ink: #0d0d0d;  --ink-soft: #1a1a1a;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #0d0d0d; color: #fff; min-height: 100vh; }
+
+    /* Login */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+      background: radial-gradient(circle at 50% 0%, #1c1f10 0%, #0d0d0d 60%);
+    }
+    .login-card {
+      background: var(--ink-soft); border: 1px solid #2c2c2c;
+      border-top: 3px solid var(--lime); border-radius: 18px;
+      padding: 32px 26px; width: 100%; max-width: 380px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center;
+    }
+    .login-card img { width: 90px; height: 90px; object-fit: contain; margin: 0 auto 14px; display: block; }
+    .login-card h2 { color: var(--lime-bright); margin-bottom: 24px; font-size: 20px; }
+    .form-group { margin-bottom: 14px; text-align: right; }
+    label { display: block; font-size: 13px; color: #bbb; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 13px 14px; border-radius: 10px;
+      border: 1px solid #333; background: #161616; color: #fff; font-size: 15px; outline: none;
+    }
+    input:focus { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(174,224,50,0.15); }
+    button { border: none; cursor: pointer; border-radius: 10px; font-weight: 700; transition: opacity 0.2s, transform 0.1s, background 0.2s; }
+    button:active { transform: scale(0.98); }
+    .btn-primary { width: 100%; padding: 13px; background: var(--lime); color: var(--ink); font-size: 15px; margin-top: 8px; }
+    .btn-primary:hover { background: var(--lime-bright); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error-msg { background: #3a1414; color: #ff8080; border: 1px solid #5c1f1f; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
+
+    /* Dashboard */
+    #dashboardScreen { display: none; }
+    .topbar {
+      background: #161616; border-bottom: 2px solid var(--lime);
+      padding: 14px 20px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-left img { width: 36px; height: 36px; object-fit: contain; }
+    .topbar h1 { font-size: 16px; color: var(--lime-bright); }
+    .btn-logout { background: transparent; border: 1px solid #333; color: #999; padding: 8px 14px; font-size: 13px; }
+    .content { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-box { background: var(--ink-soft); border: 1px solid #2c2c2c; border-radius: 12px; padding: 14px 10px; text-align: center; }
+    .stat-box .num { font-size: 22px; font-weight: 800; }
+    .stat-box .lbl { font-size: 11px; color: #999; margin-top: 4px; }
+    .stat-box.active .num { color: var(--lime-bright); }
+    .stat-box.expiring .num { color: #fbbf24; }
+    .stat-box.expired .num { color: #f87171; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-box { flex: 1; min-width: 150px; padding: 11px 14px; border-radius: 10px; border: 1px solid #333; background: #161616; color: #fff; font-size: 14px; }
+    .btn-add { background: var(--lime); color: var(--ink); padding: 11px 18px; font-size: 14px; white-space: nowrap; }
+    .btn-add:hover { background: var(--lime-bright); }
+    .member-list { display: flex; flex-direction: column; gap: 10px; }
+    .member-card { background: var(--ink-soft); border: 1px solid #2c2c2c; border-radius: 14px; padding: 14px 16px; }
+    .member-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .member-info .name { font-weight: 700; font-size: 15px; }
+    .member-info .phone { color: #999; font-size: 13px; direction: ltr; display: inline-block; margin-top: 2px; }
+    .status-pill { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .status-pill.active        { background: #1f2e0a; color: var(--lime-bright); }
+    .status-pill.expiring_soon { background: #3a2e0f; color: #fbbf24; }
+    .status-pill.expired       { background: #3a1414; color: #f87171; }
+    .member-dates { display: flex; gap: 16px; font-size: 12px; color: #aaa; margin-bottom: 12px; flex-wrap: wrap; }
+    .member-dates b { color: #ddd; }
+    .member-actions { display: flex; gap: 8px; }
+    .btn-small { flex: 1; padding: 9px; font-size: 13px; border: 1px solid #333; background: #161616; color: #ddd; }
+    .btn-small.renew  { background: #1f2e0a; color: var(--lime-bright); border-color: #3a5614; }
+    .btn-small.delete { background: #3a1414; color: #f87171; border-color: #5c1f1f; }
+    .empty-state { text-align: center; padding: 50px 20px; color: #777; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+    .modal-box { background: var(--ink-soft); border: 1px solid #2c2c2c; border-top: 3px solid var(--lime); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+    .modal-box h3 { color: var(--lime-bright); margin-bottom: 18px; font-size: 18px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn-cancel { flex: 1; padding: 12px; background: #161616; color: #ccc; border: 1px solid #333; }
+    .btn-save { flex: 1; padding: 12px; background: var(--lime); color: var(--ink); }
+    .btn-save:hover { background: var(--lime-bright); }
+
+    .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 200; color: var(--lime-bright); font-size: 15px; gap: 10px; }
+    .spinner { width: 18px; height: 18px; border: 2px solid #444; border-top-color: var(--lime-bright); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <img src="logo.png" alt="Fitness Pro">
+      <h2>دخول الأدمن</h2>
+      <div class="form-group">
+        <label>اسم المستخدم</label>
+        <input type="text" id="adminUser" placeholder="admin">
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="adminPass" placeholder="••••••••">
+      </div>
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">دخول</button>
+      <div class="error-msg" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboardScreen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <img src="logo.png" alt="Fitness Pro">
+        <h1>لوحة تحكم Fitness Pro</h1>
+      </div>
+      <button class="btn-logout" onclick="logout()">خروج</button>
+    </div>
+    <div class="content">
+      <div class="stats-row">
+        <div class="stat-box active">  <div class="num" id="statActive">0</div>  <div class="lbl">نشط</div></div>
+        <div class="stat-box expiring"><div class="num" id="statExpiring">0</div><div class="lbl">قريب الانتهاء</div></div>
+        <div class="stat-box expired"> <div class="num" id="statExpired">0</div> <div class="lbl">منتهي</div></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" class="search-box" id="searchBox" placeholder="بحث بالاسم أو رقم التليفون..." oninput="renderMembers()">
+        <button class="btn-add" onclick="openAddModal()">+ إضافة عضو</button>
+      </div>
+      <div class="member-list" id="memberList"></div>
+      <div class="empty-state" id="emptyState" style="display:none;">لا يوجد أعضاء مسجلين</div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="memberModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">إضافة عضو جديد</h3>
+      <div class="form-group"><label>رقم التليفون</label><input type="tel" id="m_phone" placeholder="01xxxxxxxxx"></div>
+      <div class="form-group"><label>اسم العضو</label><input type="text" id="m_name" placeholder="الاسم الكامل"></div>
+      <div class="form-group"><label>تاريخ بداية الاشتراك</label><input type="date" id="m_startDate"></div>
+      <div class="form-group"><label>تاريخ نهاية الاشتراك</label><input type="date" id="m_endDate"></div>
+      <div class="form-group"><label>ملاحظات (اختياري)</label><input type="text" id="m_notes" placeholder=""></div>
+      <div class="error-msg" id="modalError"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
+        <button class="btn-save" id="saveBtn" onclick="saveMember()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <span class="spinner"></span> جاري التحميل...
+  </div>
+
+  <script>
+    const API = "https://script.google.com/macros/s/AKfycbwIo3cIoygd33qf1WjuzReVdkL6LL7zYJOkYTm0G9Ve9Cd4BNTC1d0Eq70AXav_N6uMbg/exec";
+    let allMembers = [];
+    let editingRowIndex = null;
+
+    async function callAPI(body) {
+      const res = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+      return await res.json();
+    }
+
+    async function doLogin() {
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value.trim();
+      const errorMsg = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
+      errorMsg.style.display = 'none';
+      if (!user || !pass) { errorMsg.textContent = 'أدخل اسم المستخدم وكلمة المرور'; errorMsg.style.display = 'block'; return; }
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = 'جاري الدخول... <span class="spinner"></span>';
+      try {
+        const data = await callAPI({ action: 'verifyAdmin', username: user, password: pass });
+        loginBtn.disabled = false; loginBtn.textContent = 'دخول';
+        if (data.success) {
+          document.getElementById('loginScreen').style.display = 'none';
+          document.getElementById('dashboardScreen').style.display = 'block';
+          loadMembers();
+        } else { errorMsg.textContent = data.message || 'بيانات غير صحيحة'; errorMsg.style.display = 'block'; }
+      } catch(e) { loginBtn.disabled = false; loginBtn.textContent = 'دخول'; errorMsg.textContent = 'فشل الاتصال'; errorMsg.style.display = 'block'; }
+    }
+
+    function logout() {
+      document.getElementById('dashboardScreen').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('adminUser').value = '';
+      document.getElementById('adminPass').value = '';
+    }
+
+    async function loadMembers() {
+      showLoading(true);
+      try {
+        const data = await callAPI({ action: 'getAllMembers' });
+        showLoading(false);
+        if (data.success) { allMembers = data.members; renderMembers(); renderStats(); }
+        else alert(data.message || 'خطأ في التحميل');
+      } catch(e) { showLoading(false); alert('فشل الاتصال'); }
+    }
+
+    function renderStats() {
+      document.getElementById('statActive').textContent   = allMembers.filter(m => m.status === 'active').length;
+      document.getElementById('statExpiring').textContent = allMembers.filter(m => m.status === 'expiring_soon').length;
+      document.getElementById('statExpired').textContent  = allMembers.filter(m => m.status === 'expired').length;
+    }
+
+    function renderMembers() {
+      const search = document.getElementById('searchBox').value.trim().toLowerCase();
+      const list = document.getElementById('memberList');
+      const empty = document.getElementById('emptyState');
+      let filtered = allMembers;
+      if (search) filtered = allMembers.filter(m => m.name.toLowerCase().includes(search) || m.phone.includes(search));
+      if (!filtered.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      const labels = { active:'نشط', expiring_soon:'قريب الانتهاء', expired:'منتهي', unknown:'غير معروف' };
+      list.innerHTML = filtered.map(m => `
+        <div class="member-card">
+          <div class="member-card-top">
+            <div class="member-info">
+              <div class="name">${esc(m.name)}</div>
+              <span class="phone">${m.phone}</span>
+            </div>
+            <span class="status-pill ${m.status}">${labels[m.status]||m.status}</span>
+          </div>
+          <div class="member-dates">
+            <span>من: <b>${m.startDate}</b></span>
+            <span>إلى: <b>${m.endDate}</b></span>
+          </div>
+          <div class="member-actions">
+            <button class="btn-small" onclick="openEditModal(${m.rowIndex})">تعديل</button>
+            <button class="btn-small renew" onclick="quickRenew(${m.rowIndex})">تجديد 30 يوم</button>
+            <button class="btn-small delete" onclick="confirmDelete(${m.rowIndex},'${esc(m.name)}')">حذف</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function openAddModal() {
+      editingRowIndex = null;
+      document.getElementById('modalTitle').textContent = 'إضافة عضو جديد';
+      document.getElementById('m_phone').value = ''; document.getElementById('m_phone').disabled = false;
+      document.getElementById('m_name').value = ''; document.getElementById('m_notes').value = '';
+      const today = new Date().toISOString().split('T')[0];
+      const next  = new Date(Date.now() + 30*86400000).toISOString().split('T')[0];
+      document.getElementById('m_startDate').value = today;
+      document.getElementById('m_endDate').value   = next;
+      document.getElementById('modalError').style.display = 'none';
+      document.getElementById('memberModal').style.display = 'flex';
+    }
+
+    function openEditModal(rowIndex) {
+      const m = allMembers.find(x => x.rowIndex === rowIndex); if (!m) return;
+      editingRowIndex = rowIndex;
+      document.getElementById('modalTitle').textContent = 'تعديل بيانات العضو';
+      document.getElementById('m_phone').value = m.phone; document.getElementById('m_phone').disabled = true;
+      document.getElementById('m_name').value = m.name;
+      document.getElementById('m_startDate').value = m.startDate;
+      document.getElementById('m_endDate').value   = m.endDate;
+      document.getElementById('m_notes').value = m.notes;
+      document.getElementById('modalError').style.display = 'none';
+      document.getElementById('memberModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('memberModal').style.display = 'none'; }
+
+    async function saveMember() {
+      const phone = document.getElementById('m_phone').value.trim();
+      const name  = document.getElementById('m_name').value.trim();
+      const startDate = document.getElementById('m_startDate').value;
+      const endDate   = document.getElementById('m_endDate').value;
+      const notes = document.getElementById('m_notes').value.trim();
+      const errorMsg  = document.getElementById('modalError');
+      const saveBtn   = document.getElementById('saveBtn');
+      errorMsg.style.display = 'none';
+      if (!phone || !name || !startDate || !endDate) { errorMsg.textContent = 'أدخل كل البيانات المطلوبة'; errorMsg.style.display = 'block'; return; }
+      if (new Date(endDate) < new Date(startDate))   { errorMsg.textContent = 'تاريخ النهاية قبل البداية'; errorMsg.style.display = 'block'; return; }
+      saveBtn.disabled = true; saveBtn.innerHTML = 'جاري الحفظ... <span class="spinner"></span>';
+      try {
+        const body = editingRowIndex === null
+          ? { action: 'addMember', memberData: { phone, name, startDate, endDate, notes } }
+          : { action: 'updateMember', rowIndex: editingRowIndex, memberData: { name, startDate, endDate, notes } };
+        const data = await callAPI(body);
+        saveBtn.disabled = false; saveBtn.textContent = 'حفظ';
+        if (data.success) { closeModal(); loadMembers(); }
+        else { errorMsg.textContent = data.message; errorMsg.style.display = 'block'; }
+      } catch(e) { saveBtn.disabled = false; saveBtn.textContent = 'حفظ'; errorMsg.textContent = 'فشل الاتصال'; errorMsg.style.display = 'block'; }
+    }
+
+    async function quickRenew(rowIndex) {
+      const m = allMembers.find(x => x.rowIndex === rowIndex); if (!m) return;
+      if (!confirm('تجديد اشتراك ' + m.name + ' بـ 30 يوم من النهاردة؟')) return;
+      const today = new Date().toISOString().split('T')[0];
+      const newEnd = new Date(Date.now() + 30*86400000).toISOString().split('T')[0];
+      showLoading(true);
+      try {
+        const data = await callAPI({ action: 'updateMember', rowIndex, memberData: { startDate: today, endDate: newEnd } });
+        showLoading(false);
+        if (data.success) loadMembers(); else alert(data.message || 'حصل خطأ');
+      } catch(e) { showLoading(false); alert('فشل الاتصال'); }
+    }
+
+    async function confirmDelete(rowIndex, name) {
+      if (!confirm('متأكد عاوز تحذف "' + name + '"؟')) return;
+      showLoading(true);
+      try {
+        const data = await callAPI({ action: 'deleteMember', rowIndex });
+        showLoading(false);
+        if (data.success) loadMembers(); else alert(data.message || 'حصل خطأ');
+      } catch(e) { showLoading(false); alert('فشل الاتصال'); }
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+    }
+
+    document.getElementById('adminPass').addEventListener('keypress', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
+</body>
+</html>
