@@ -54,7 +54,9 @@
     .btn-logout { background: transparent; border: 1px solid #333; color: #999; padding: 8px 14px; font-size: 13px; }
     .content { padding: 16px; max-width: 900px; margin: 0 auto; }
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
-    .stat-box { background: var(--ink-soft); border: 1px solid #2c2c2c; border-radius: 12px; padding: 14px 10px; text-align: center; }
+    .stat-box { background: var(--ink-soft); border: 1px solid #2c2c2c; border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; transition: transform 0.1s, border-color 0.2s; }
+    .stat-box:active { transform: scale(0.97); }
+    .stat-box.filter-on { border-color: currentColor; box-shadow: 0 0 0 1px currentColor; }
     .stat-box .num { font-size: 22px; font-weight: 800; }
     .stat-box .lbl { font-size: 11px; color: #999; margin-top: 4px; }
     .stat-box.active .num { color: var(--lime-bright); }
@@ -183,13 +185,17 @@
     </div>
     <div class="content">
       <div class="stats-row">
-        <div class="stat-box active">  <div class="num" id="statActive">0</div>  <div class="lbl">نشط</div></div>
-        <div class="stat-box expiring"><div class="num" id="statExpiring">0</div><div class="lbl">قريب الانتهاء</div></div>
-        <div class="stat-box expired"> <div class="num" id="statExpired">0</div> <div class="lbl">منتهي</div></div>
+        <div class="stat-box active"   id="filterActive"   onclick="setFilter('active')">       <div class="num" id="statActive">0</div>  <div class="lbl">نشط</div></div>
+        <div class="stat-box expiring" id="filterExpiring" onclick="setFilter('expiring_soon')"><div class="num" id="statExpiring">0</div><div class="lbl">قريب الانتهاء</div></div>
+        <div class="stat-box expired"  id="filterExpired"  onclick="setFilter('expired')">       <div class="num" id="statExpired">0</div> <div class="lbl">منتهي</div></div>
       </div>
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox" placeholder="بحث بالاسم أو رقم التليفون..." oninput="renderMembers()">
         <button class="btn-add" onclick="openAddModal()">+ إضافة عضو</button>
+      </div>
+      <div class="toolbar" id="activeFilterBar" style="display:none;">
+        <span style="font-size:13px; color:#aaa; padding:8px 0;">فلتر شغال: <b id="activeFilterLabel" style="color: var(--lime-bright);"></b></span>
+        <button class="btn-small" style="flex:0 0 auto; padding:7px 14px;" onclick="setFilter(null)">إلغاء الفلتر ✕</button>
       </div>
       <div class="member-list" id="memberList"></div>
       <div class="empty-state" id="emptyState" style="display:none;">لا يوجد أعضاء مسجلين</div>
@@ -204,6 +210,7 @@
       <div class="form-group"><label>اسم العضو</label><input type="text" id="m_name" placeholder="الاسم الكامل"></div>
       <div class="form-group"><label>تاريخ بداية الاشتراك</label><input type="date" id="m_startDate"></div>
       <div class="form-group"><label>تاريخ نهاية الاشتراك</label><input type="date" id="m_endDate"></div>
+      <div class="form-group"><label>نوع الاشتراك</label><input type="text" id="m_planType" placeholder="مثال: شهري / VIP / 3 شهور"></div>
       <div class="form-group"><label>ملاحظات (اختياري)</label><input type="text" id="m_notes" placeholder=""></div>
       <div class="error-msg" id="modalError"></div>
       <div class="modal-actions">
@@ -221,6 +228,7 @@
     const API = "https://script.google.com/macros/s/AKfycbwIo3cIoygd33qf1WjuzReVdkL6LL7zYJOkYTm0G9Ve9Cd4BNTC1d0Eq70AXav_N6uMbg/exec";
     let allMembers = [];
     let editingRowIndex = null;
+    let activeFilter = null; // null = الكل, أو active/expiring_soon/expired
 
     async function callAPI(body) {
       const res = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
@@ -264,6 +272,27 @@
       } catch(e) { showLoading(false); alert('فشل الاتصال'); }
     }
 
+    function setFilter(status) {
+      activeFilter = (activeFilter === status) ? null : status;
+
+      ['filterActive','filterExpiring','filterExpired'].forEach(id =>
+        document.getElementById(id).classList.remove('filter-on')
+      );
+      const map = { active: 'filterActive', expiring_soon: 'filterExpiring', expired: 'filterExpired' };
+      const bar = document.getElementById('activeFilterBar');
+      const label = document.getElementById('activeFilterLabel');
+      const labels = { active:'نشط', expiring_soon:'قريب الانتهاء', expired:'منتهي' };
+
+      if (activeFilter) {
+        document.getElementById(map[activeFilter]).classList.add('filter-on');
+        bar.style.display = 'flex';
+        label.textContent = labels[activeFilter];
+      } else {
+        bar.style.display = 'none';
+      }
+      renderMembers();
+    }
+
     function renderStats() {
       document.getElementById('statActive').textContent   = allMembers.filter(m => m.status === 'active').length;
       document.getElementById('statExpiring').textContent = allMembers.filter(m => m.status === 'expiring_soon').length;
@@ -275,7 +304,8 @@
       const list = document.getElementById('memberList');
       const empty = document.getElementById('emptyState');
       let filtered = allMembers;
-      if (search) filtered = allMembers.filter(m => m.name.toLowerCase().includes(search) || m.phone.includes(search));
+      if (activeFilter) filtered = filtered.filter(m => m.status === activeFilter);
+      if (search) filtered = filtered.filter(m => m.name.toLowerCase().includes(search) || m.phone.includes(search));
       if (!filtered.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
       const labels = { active:'نشط', expiring_soon:'قريب الانتهاء', expired:'منتهي', unknown:'غير معروف' };
@@ -291,6 +321,7 @@
           <div class="member-dates">
             <span>من: <b>${m.startDate}</b></span>
             <span>إلى: <b>${m.endDate}</b></span>
+            ${m.planType ? `<span>النوع: <b>${esc(m.planType)}</b></span>` : ''}
           </div>
           <div class="member-actions">
             <button class="btn-small" onclick="openEditModal(${m.rowIndex})">تعديل</button>
@@ -308,7 +339,7 @@
       editingRowIndex = null;
       document.getElementById('modalTitle').textContent = 'إضافة عضو جديد';
       document.getElementById('m_phone').value = ''; document.getElementById('m_phone').disabled = false;
-      document.getElementById('m_name').value = ''; document.getElementById('m_notes').value = '';
+      document.getElementById('m_name').value = ''; document.getElementById('m_planType').value = ''; document.getElementById('m_notes').value = '';
       const today = new Date().toISOString().split('T')[0];
       const next  = new Date(Date.now() + 30*86400000).toISOString().split('T')[0];
       document.getElementById('m_startDate').value = today;
@@ -325,6 +356,7 @@
       document.getElementById('m_name').value = m.name;
       document.getElementById('m_startDate').value = m.startDate;
       document.getElementById('m_endDate').value   = m.endDate;
+      document.getElementById('m_planType').value = m.planType || '';
       document.getElementById('m_notes').value = m.notes;
       document.getElementById('modalError').style.display = 'none';
       document.getElementById('memberModal').style.display = 'flex';
@@ -337,6 +369,7 @@
       const name  = document.getElementById('m_name').value.trim();
       const startDate = document.getElementById('m_startDate').value;
       const endDate   = document.getElementById('m_endDate').value;
+      const planType = document.getElementById('m_planType').value.trim();
       const notes = document.getElementById('m_notes').value.trim();
       const errorMsg  = document.getElementById('modalError');
       const saveBtn   = document.getElementById('saveBtn');
@@ -346,8 +379,8 @@
       saveBtn.disabled = true; saveBtn.innerHTML = 'جاري الحفظ... <span class="spinner"></span>';
       try {
         const body = editingRowIndex === null
-          ? { action: 'addMember', memberData: { phone, name, startDate, endDate, notes } }
-          : { action: 'updateMember', rowIndex: editingRowIndex, memberData: { name, startDate, endDate, notes } };
+          ? { action: 'addMember', memberData: { phone, name, startDate, endDate, planType, notes } }
+          : { action: 'updateMember', rowIndex: editingRowIndex, memberData: { name, startDate, endDate, planType, notes } };
         const data = await callAPI(body);
         saveBtn.disabled = false; saveBtn.textContent = 'حفظ';
         if (data.success) { closeModal(); loadMembers(); }
@@ -417,8 +450,9 @@
   </script>
 
   <!-- Footer -->
-  <footer style="text-align:center; padding: 18px 20px 30px; font-size: 12px; color: #555; letter-spacing: 0.4px;">
-    تصميم <span style="color: var(--lime); font-weight: 600;">كريم محمد</span> &nbsp;|&nbsp; <span style="color: var(--lime); font-weight: 600;">Kareem Mohamed</span>
+  <footer style="text-align:center; padding: 18px 20px 30px; font-size: 12px; color: #555; letter-spacing: 0.4px; line-height: 1.8;">
+    تصميم <span style="color: var(--lime); font-weight: 600;">كريم محمد</span><br>
+    <span style="color: var(--lime); font-weight: 600;">Kareem Mohamed</span>
   </footer>
 
 </body>
