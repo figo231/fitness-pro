@@ -5,6 +5,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fitness Pro - اشتراكي</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d0d0d">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fitness Pro">
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -143,6 +154,7 @@
     .fab:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
     .fab-wa   { background: #25d366; color: #fff; }
     .fab-mode { background: #2c2c2c; color: #ffd400; font-size: 18px; }
+    .fab-install { background: var(--lime); color: var(--ink); font-size: 18px; display: flex; }
     body.light .fab-mode { background: #e0e0e0; color: #333; }
 
     /* Tooltip */
@@ -168,6 +180,10 @@
     <div class="fab-wrap">
       <button class="fab fab-mode" onclick="toggleMode()" id="modeBtn">🌙</button>
       <span class="tip">تغيير الوضع</span>
+    </div>
+    <div class="fab-wrap">
+      <button class="fab fab-install" id="installBtn" style="display:none;" title="تثبيت الأبليكيشن">⬇️</button>
+      <span class="tip">تثبيت الأبليكيشن</span>
     </div>
   </div>
 
@@ -293,6 +309,35 @@
       document.body.classList.add('light');
       document.getElementById('modeBtn').textContent = '☀️';
     }
+
+    // ===== PWA: تسجيل الـ Service Worker =====
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+
+    // ===== PWA: زرار تثبيت الأبليكيشن =====
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.style.display = 'none';
+    });
   </script>
 
   <!-- Footer -->
