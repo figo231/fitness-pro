@@ -192,6 +192,7 @@
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox" placeholder="بحث بالاسم أو رقم التليفون..." oninput="renderMembers()">
         <button class="btn-add" onclick="openAddModal()">+ إضافة عضو</button>
+        <button class="btn-add" style="background:#161616; color: var(--lime-bright); border:1px solid var(--lime);" onclick="openNotifyModal(null, null)">📢 تنبيه عام</button>
       </div>
       <div class="toolbar" id="activeFilterBar" style="display:none;">
         <span style="font-size:13px; color:#aaa; padding:8px 0;">فلتر شغال: <b id="activeFilterLabel" style="color: var(--lime-bright);"></b></span>
@@ -216,6 +217,22 @@
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
         <button class="btn-save" id="saveBtn" onclick="saveMember()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال إرسال تنبيه -->
+  <div class="modal-overlay" id="notifyModal">
+    <div class="modal-box">
+      <h3 id="notifyModalTitle">إرسال تنبيه عام لكل الأعضاء</h3>
+      <div class="form-group">
+        <label>نص التنبيه</label>
+        <input type="text" id="n_message" placeholder="مثال: الجيم هيكون مقفول بكرة الجمعة">
+      </div>
+      <div class="error-msg" id="notifyModalError"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeNotifyModal()">إلغاء</button>
+        <button class="btn-save" id="notifySaveBtn" onclick="sendNotificationNow()">إرسال</button>
       </div>
     </div>
   </div>
@@ -327,6 +344,9 @@
             <button class="btn-small" onclick="openEditModal(${m.rowIndex})">تعديل</button>
             <button class="btn-small renew" onclick="quickRenew(${m.rowIndex})">تجديد 30 يوم</button>
             <button class="btn-small whatsapp" onclick="sendWhatsApp('${m.phone}','${esc(m.name)}','${m.endDate}')">📲 تذكير</button>
+          </div>
+          <div class="member-actions" style="margin-top:8px;">
+            <button class="btn-small" style="color: var(--lime-bright); border-color: var(--lime);" onclick="openNotifyModal('${m.phone}','${esc(m.name)}')">📢 تنبيه داخل التطبيق</button>
             <button class="btn-small delete" onclick="confirmDelete(${m.rowIndex},'${esc(m.name)}')">حذف</button>
           </div>
         </div>
@@ -363,6 +383,55 @@
     }
 
     function closeModal() { document.getElementById('memberModal').style.display = 'none'; }
+
+    // ===== إرسال تنبيه (عام أو لعضو) =====
+    let notifyTargetPhone = null;
+
+    function openNotifyModal(phone, name) {
+      notifyTargetPhone = phone;
+      document.getElementById('notifyModalTitle').textContent = phone
+        ? `إرسال تنبيه لـ ${name}`
+        : 'إرسال تنبيه عام لكل الأعضاء';
+      document.getElementById('n_message').value = '';
+      document.getElementById('notifyModalError').style.display = 'none';
+      document.getElementById('notifyModal').style.display = 'flex';
+    }
+
+    function closeNotifyModal() {
+      document.getElementById('notifyModal').style.display = 'none';
+    }
+
+    async function sendNotificationNow() {
+      const message = document.getElementById('n_message').value.trim();
+      const errorMsg = document.getElementById('notifyModalError');
+      const btn = document.getElementById('notifySaveBtn');
+      errorMsg.style.display = 'none';
+
+      if (!message) {
+        errorMsg.textContent = 'اكتب نص التنبيه أولاً';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
+      try {
+        const data = await callAPI({ action: 'sendNotification', phone: notifyTargetPhone, message });
+        btn.disabled = false;
+        btn.textContent = 'إرسال';
+        if (data.success) {
+          closeNotifyModal();
+        } else {
+          errorMsg.textContent = data.message || 'حصل خطأ';
+          errorMsg.style.display = 'block';
+        }
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'إرسال';
+        errorMsg.textContent = 'فشل الاتصال';
+        errorMsg.style.display = 'block';
+      }
+    }
 
     async function saveMember() {
       const phone = document.getElementById('m_phone').value.trim();

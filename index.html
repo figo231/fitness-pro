@@ -94,7 +94,17 @@
     .home-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .menu-dots { display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
     .menu-dots span { width: 20px; height: 2.5px; background: var(--lime); border-radius: 2px; }
-    .bell-icon { font-size: 20px; color: var(--lime); cursor: pointer; }
+    .bell-icon { font-size: 20px; color: var(--lime); cursor: pointer; position: relative; display: inline-block; }
+    .bell-icon .dot-badge {
+      position: absolute; top: -3px; left: -3px; width: 10px; height: 10px;
+      background: #f87171; border-radius: 50%; border: 2px solid var(--ink); display: none;
+    }
+    body.light .bell-icon .dot-badge { border-color: #f2f2f2; }
+    .grid-card { position: relative; }
+    .grid-card .dot-badge {
+      position: absolute; top: 10px; left: 10px; width: 9px; height: 9px;
+      background: #f87171; border-radius: 50%; display: none;
+    }
 
     .logo-area { text-align: center; margin: 6px 0 22px; }
     .logo-area img { width: 110px; height: 110px; object-fit: contain; filter: drop-shadow(0 6px 16px rgba(174,224,50,0.25)); }
@@ -194,7 +204,7 @@
   <div id="homeScreen">
     <div class="home-header">
       <div class="menu-dots"><span></span><span></span><span></span></div>
-      <span class="bell-icon" onclick="openSubPage('alerts')">🔔</span>
+      <span class="bell-icon" onclick="openSubPage('alerts')">🔔<span class="dot-badge" id="bellDot"></span></span>
     </div>
 
     <div class="logo-area"><img src="logo.png" alt="Fitness Pro"></div>
@@ -230,6 +240,7 @@
         <div class="lbl">تقدمي</div>
       </div>
       <div class="grid-card" onclick="openSubPage('alerts')">
+        <span class="dot-badge" id="cardDot"></span>
         <span class="icon">🔔</span>
         <div class="lbl">التنبيهات</div>
       </div>
@@ -365,6 +376,39 @@
         statusValue.textContent = 'غير معروف';
         checkPath.style.display = 'none';
       }
+
+      checkUnreadNotifications();
+    }
+
+    async function checkUnreadNotifications() {
+      if (!currentMember) return;
+      try {
+        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'getNotifications', phone: currentMember.phone }) });
+        const data = await res.json();
+        if (!data.success || !data.notifications.length) {
+          setBellDot(false);
+          return;
+        }
+        const latest = data.notifications.reduce((max, n) => {
+          const t = new Date(n.createdAt).getTime();
+          return t > max ? t : max;
+        }, 0);
+        const lastSeen = parseInt(localStorage.getItem('fpLastSeenNotif_' + currentMember.phone) || '0', 10);
+        setBellDot(latest > lastSeen);
+      } catch (e) {
+        // تجاهل أي خطأ هنا، النقطة مش حرجة
+      }
+    }
+
+    function setBellDot(show) {
+      document.getElementById('bellDot').style.display = show ? 'block' : 'none';
+      document.getElementById('cardDot').style.display = show ? 'block' : 'none';
+    }
+
+    function markNotificationsSeen() {
+      if (!currentMember) return;
+      localStorage.setItem('fpLastSeenNotif_' + currentMember.phone, Date.now().toString());
+      setBellDot(false);
     }
 
     function changeNumber() {
@@ -412,13 +456,15 @@
       }
     };
 
-    function openSubPage(key) {
+    async function openSubPage(key) {
       const page = subPages[key];
       if (!page) return;
 
       document.getElementById('homeScreen').style.display = 'none';
       document.getElementById('subPageScreen').style.display = 'flex';
       document.getElementById('subPageTitle').textContent = page.title;
+
+      if (key === 'alerts') markNotificationsSeen();
 
       let bodyHtml = page.html;
       if (key === 'subscription' && currentMember) {
@@ -434,6 +480,27 @@
       }
 
       document.getElementById('subPageContent').innerHTML = `<span class="big-icon">${page.icon}</span>${bodyHtml}`;
+
+      if (key === 'alerts' && currentMember) {
+        document.getElementById('subPageContent').innerHTML = `<span class="big-icon">${page.icon}</span><div id="notifList">جاري التحميل...</div>`;
+        try {
+          const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'getNotifications', phone: currentMember.phone }) });
+          const data = await res.json();
+          const list = document.getElementById('notifList');
+          if (data.success && data.notifications.length) {
+            list.innerHTML = data.notifications.map(n => `
+              <div style="text-align:right; background:rgba(174,224,50,0.06); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px;">
+                ${n.isGeneral ? '<span style="font-size:11px; color: var(--lime-bright);">📢 إعلان عام</span><br>' : ''}
+                ${escHtml(n.message)}
+              </div>
+            `).join('');
+          } else {
+            list.innerHTML = 'مفيش تنبيهات جديدة دلوقتي 🔕<br><br>هنبلغك هنا بأي تحديثات أو تذكيرات تخص اشتراكك.';
+          }
+        } catch (e) {
+          document.getElementById('notifList').textContent = 'تعذر تحميل التنبيهات، حاول تاني.';
+        }
+      }
     }
 
     function closeSubPage() {
@@ -457,7 +524,21 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          // افحص فورًا لو فيه نسخة جديدة من sw.js على السيرفر
+          reg.update();
+
+          // لو لقى نسخة جديدة شغالة، أعد تحميل الصفحة مرة واحدة عشان تطبق التحديث فورًا
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                window.location.reload();
+              }
+            });
+          });
+        }).catch(() => {});
       });
     }
     let deferredPrompt;

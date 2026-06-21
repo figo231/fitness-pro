@@ -1,4 +1,4 @@
-const CACHE_NAME = "fitness-pro-v1";
+const CACHE_NAME = "fitness-pro-v2";
 const urlsToCache = [
   "./index.html",
   "./logo.png",
@@ -10,7 +10,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // يفعّل النسخة الجديدة فورًا بدل ما يستنى إغلاق كل التابات
 });
 
 self.addEventListener("activate", (event) => {
@@ -18,24 +18,29 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
+          if (key !== CACHE_NAME) return caches.delete(key); // يمسح أي كاش قديم بإصدار مختلف
         })
       )
     )
   );
-  self.clients.claim();
+  self.clients.claim(); // ياخد السيطرة على الصفحات المفتوحة فورًا
 });
 
 self.addEventListener("fetch", (event) => {
-  // الصفحات الثابتة (index, logo, icons) من الكاش لو الإنترنت ضعيف
-  // أما طلبات الـ API (Apps Script) دايمًا تروح للإنترنت مباشرة
+  // طلبات الـ API (Apps Script) دايمًا تروح للإنترنت مباشرة بدون أي تدخل من الكاش
   if (event.request.url.includes("script.google.com")) {
-    return; // سيب الطلب يروح عادي بدون تدخل
+    return;
   }
 
+  // استراتيجية Network First: يحاول ياخد آخر نسخة من الإنترنت أولاً
+  // ولو الإنترنت ضعيف/مقطوع، يرجع للنسخة المخزنة كحل احتياطي فقط
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        const resClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
